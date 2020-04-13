@@ -1,1 +1,3 @@
-# tic-tac-toe
+# Tic Tac Toe
+
+Simple implementation of console game and simple ai
