@@ -1,10 +1,5 @@
 package ru.nobirds.utils
 
-data class Point(val x: Int, val y: Int)
-
-infix fun Int.x(value: Int): Point =
-    Point(this, value)
-
 interface Matrix<out T> {
 
     val size: Point
@@ -12,87 +7,17 @@ interface Matrix<out T> {
     operator fun get(x: Int, y: Int): T
 }
 
-interface MutableMatrix<T> : Matrix<T> {
-
-    operator fun set(x: Int, y: Int, value: T)
-}
-
 val <T> Matrix<T>.xIndices: IntRange get() = 0 until size.x
 val <T> Matrix<T>.yIndices: IntRange get() = 0 until size.y
 
 operator fun <T> Matrix<T>.get(point: Point): T = get(point.x, point.y)
-operator fun <T> MutableMatrix<T>.set(point: Point, value: T) = set(point.x, point.y, value)
-
-inline fun <reified T> mutableMatrixOf(sizeX: Int, sizeY: Int, factory: (Int, Int) -> T): MutableMatrix<T> =
-    ArrayMatrix(Array(sizeX) { x -> Array(sizeY) { y -> factory(x, y) } })
-
-inline fun <reified T> mutableMatrixOf(sizeY: Int, vararg values: T): MutableMatrix<T> =
-    ArrayMatrix(values.toList().chunked(sizeY).map { it.toTypedArray() }
-        .toTypedArray())
-
-class ArrayMatrix<T>(private val array: Array<Array<T>>) : MutableMatrix<T> {
-
-    override val size: Point =
-        Point(array.size, array[0].size)
-
-    override fun get(x: Int, y: Int): T {
-        checkPositionInBounds(x, y)
-        return array[x][y]
-    }
-
-    override fun set(x: Int, y: Int, value: T) {
-        checkPositionInBounds(x, y)
-        array[x][y] = value
-    }
-
-    override fun toString(): String = formatToString()
-
-}
 
 fun Matrix<*>.contains(x: Int, y: Int): Boolean = x >= 0 && y >= 0 && x < size.x && y < size.y
 
 operator fun Matrix<*>.contains(point: Point): Boolean = contains(point.x, point.y)
 
-fun Matrix<*>.checkPositionInBounds(x: Int, y: Int) {
+fun Matrix<*>.checkInBounds(x: Int, y: Int) {
     check(contains(x, y)) { "Coordinates [$x,$y] not in bounds $size" }
-}
-
-class MatrixView<T>(private val matrix: Matrix<T>,
-                    private val viewPosition: Point,
-                    private val viewSize: Point
-) : Matrix<T> {
-
-    override val size: Point
-        get() = viewSize
-
-    override fun get(x: Int, y: Int): T {
-        checkPositionInBounds(x, y)
-        return matrix[viewPosition.x + x, viewPosition.y + y]
-    }
-
-    override fun toString(): String = formatToString()
-}
-
-fun <T> Matrix<T>.window(position: Point, size: Point): Matrix<T> {
-    return MatrixView(this, position, size)
-}
-
-inline fun <T, R> Matrix<T>.mapWindow(windowSize: Int, block: (Matrix<T>) -> R): List<R> {
-    val result = mutableListOf<R>()
-    forEachWindow(windowSize) {
-        result.add(block(it))
-    }
-    return result
-}
-
-inline fun <T> Matrix<T>.forEachWindow(windowSize: Int, block: (Matrix<T>) -> Unit) {
-    val windowSizePoint = Point(windowSize, windowSize)
-
-    for (x in 0..size.x - windowSize) {
-        for (y in 0..size.y - windowSize) {
-            block(window(Point(x, y), windowSizePoint))
-        }
-    }
 }
 
 inline fun <T, reified R> Matrix<T>.map(transfer: (T) -> R): Matrix<R> =

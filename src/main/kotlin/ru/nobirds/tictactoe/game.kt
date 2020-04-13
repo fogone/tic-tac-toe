@@ -63,15 +63,7 @@ class TicTacToeGame(
 
     private fun Player.processTurn(): Point {
         return generateSequence { gameField.nextTurn(inRow) }
-            .takeWhileIncluding { !gameField.checkTurn(it) }.first()
-    }
-
-    private fun <T> Sequence<T>.takeWhileIncluding(condition: (T) -> Boolean): Sequence<T> = sequence {
-        for (item in this@takeWhileIncluding) {
-            yield(item)
-            if(!condition(item))
-                break
-        }
+            .first { gameField.checkTurn(it) }
     }
 
     private fun GameField.checkTurn(point: Point): Boolean {

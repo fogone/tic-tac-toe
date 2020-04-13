@@ -10,17 +10,17 @@ import ru.nobirds.utils.Matrix
 import ru.nobirds.utils.map
 import ru.nobirds.utils.mutableMatrixOf
 
-data class TicTacToeWinnerCase(val matrix: Matrix<CellType>, val inRow: Int, val result: CellType)
+data class WinnerCase(val matrix: Matrix<CellType>, val inRow: Int, val result: CellType)
 
-fun TicTacToeWinnerCase.inverse(): TicTacToeWinnerCase = TicTacToeWinnerCase(matrix.map { it.inverse() }, inRow, result.inverse())
+fun WinnerCase.inverse(): WinnerCase = WinnerCase(matrix.map { it.inverse() }, inRow, result.inverse())
 
 @RunWith(Parameterized::class)
-class WinnerTest(private val case: TicTacToeWinnerCase) {
+class WinnerTest(private val case: WinnerCase) {
 
     companion object {
 
         private val emptyCases = listOf(
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     CROSS, EMPTY, EMPTY,
@@ -30,7 +30,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                 3,
                 EMPTY
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     5,
                     CROSS, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -45,7 +45,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
         )
 
         private val crossCases = listOf(
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     CROSS, EMPTY, EMPTY,
@@ -53,7 +53,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                     CROSS, EMPTY, ZERO
                 ), 3, CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     CROSS, CROSS, CROSS,
@@ -61,7 +61,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                     CROSS, EMPTY, ZERO
                 ), 3, CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     ZERO, ZERO, EMPTY,
@@ -69,7 +69,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                     CROSS, EMPTY, ZERO
                 ), 3, CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     CROSS, ZERO, EMPTY,
@@ -77,7 +77,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                     CROSS, EMPTY, CROSS
                 ), 3, CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     3,
                     ZERO, ZERO, CROSS,
@@ -85,7 +85,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                     CROSS, EMPTY, EMPTY
                 ), 3, CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     5,
                     CROSS, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -97,7 +97,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                 5,
                 CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     5,
                     EMPTY, EMPTY, EMPTY, EMPTY, CROSS,
@@ -109,7 +109,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                 5,
                 CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     5,
                     CROSS, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -121,7 +121,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
                 3,
                 CROSS
             ),
-            TicTacToeWinnerCase(
+            WinnerCase(
                 mutableMatrixOf(
                     5,
                     CROSS, EMPTY, EMPTY, EMPTY, EMPTY,
@@ -141,7 +141,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
 
         @JvmStatic
         @Parameterized.Parameters
-        fun cases(): List<TicTacToeWinnerCase> = allCases
+        fun cases(): List<WinnerCase> = allCases
     }
 
     @Test
@@ -149,7 +149,7 @@ class WinnerTest(private val case: TicTacToeWinnerCase) {
         findWinnerSimpleTest(SimpleWinnerAlgorithm(), case)
     }
 
-    private fun findWinnerSimpleTest(algorithm: WinnerAlgorithm, case: TicTacToeWinnerCase) {
+    private fun findWinnerSimpleTest(algorithm: WinnerAlgorithm, case: WinnerCase) {
         with(algorithm) {
             val winner = case.matrix.findWinner(case.inRow)
             assertThat(
