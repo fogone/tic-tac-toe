@@ -6,6 +6,10 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import ru.nobirds.utils.Point
+import ru.nobirds.utils.map
+import ru.nobirds.utils.mutableMatrixOf
+import ru.nobirds.utils.x
 
 data class AlertCase(val matrix: GameField, val inRow: Int, val type: CellType, val result: GameRange)
 

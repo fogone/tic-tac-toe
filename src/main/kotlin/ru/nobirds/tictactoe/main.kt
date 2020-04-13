@@ -1,5 +1,7 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.mutableMatrixOf
+
 fun main() {
     val game = createDefaultGame(5, 4)
     val winner = game.run()

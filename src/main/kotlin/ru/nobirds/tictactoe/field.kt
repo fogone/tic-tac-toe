@@ -1,5 +1,7 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.*
+
 typealias GameField = Matrix<CellType>
 typealias MutableGameField = MutableMatrix<CellType>
 

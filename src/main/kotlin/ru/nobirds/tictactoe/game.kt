@@ -1,5 +1,7 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.*
+
 class TicTacToeGame(
     private val gameField: MutableGameField,
     val inRow: Int,
@@ -19,10 +21,15 @@ class TicTacToeGame(
             with(nextPlayer) {
                 val turn = processTurn()
                 gameField[turn] = cellType
-                checkWinner()
             }
-            checkEmptyCells()
-            swapPlayers()
+
+            checkWinner()
+
+            if(!gameOver) {
+                checkEmptyCells()
+                swapPlayers()
+            }
+
             println("$gameField")
         } while (!gameOver)
 
@@ -67,7 +74,7 @@ class TicTacToeGame(
         }
     }
 
-    private fun Matrix<CellType>.checkTurn(point: Point): Boolean {
+    private fun GameField.checkTurn(point: Point): Boolean {
         return point in this && get(point).isEmpty
     }
 

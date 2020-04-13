@@ -1,5 +1,8 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.Point
+import ru.nobirds.utils.get
+
 interface WinnerAlgorithm {
 
     fun GameField.findWinner(inRow: Int): List<SearchResult>

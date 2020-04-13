@@ -1,8 +1,9 @@
-package ru.nobirds.tictactoe
+package ru.nobirds.utils
 
 data class Point(val x: Int, val y: Int)
 
-infix fun Int.x(value: Int): Point = Point(this, value)
+infix fun Int.x(value: Int): Point =
+    Point(this, value)
 
 interface Matrix<out T> {
 
@@ -26,7 +27,8 @@ inline fun <reified T> mutableMatrixOf(sizeX: Int, sizeY: Int, factory: (Int, In
     ArrayMatrix(Array(sizeX) { x -> Array(sizeY) { y -> factory(x, y) } })
 
 inline fun <reified T> mutableMatrixOf(sizeY: Int, vararg values: T): MutableMatrix<T> =
-    ArrayMatrix(values.toList().chunked(sizeY).map { it.toTypedArray() }.toTypedArray())
+    ArrayMatrix(values.toList().chunked(sizeY).map { it.toTypedArray() }
+        .toTypedArray())
 
 class ArrayMatrix<T>(private val array: Array<Array<T>>) : MutableMatrix<T> {
 
@@ -57,7 +59,8 @@ fun Matrix<*>.checkPositionInBounds(x: Int, y: Int) {
 
 class MatrixView<T>(private val matrix: Matrix<T>,
                     private val viewPosition: Point,
-                    private val viewSize: Point) : Matrix<T> {
+                    private val viewSize: Point
+) : Matrix<T> {
 
     override val size: Point
         get() = viewSize
@@ -114,12 +117,6 @@ fun Matrix<*>.topDownDiagonalPositions(x: Int = 0, y: Int = 0): Sequence<Point> 
 fun Matrix<*>.bottomUpDiagonalPositions(x: Int = 0, y: Int = size.y - 1): Sequence<Point> = sequence {
     processByIterators(this@bottomUpDiagonalPositions, (x..size.x).iterator(), (y downTo 0).iterator())
 }
-
-
-fun <T> Matrix<T>.row(y: Int): Sequence<T> = rowPositions(y).map { get(it) }
-fun <T> Matrix<T>.column(x: Int): Sequence<T> = columnPositions(x).map { get(it) }
-fun <T> Matrix<T>.topDownDiagonal(x: Int = 0, y: Int = 0): Sequence<T> = topDownDiagonalPositions(x, y).map { get(it) }
-fun <T> Matrix<T>.bottomUpDiagonal(x: Int = 0, y: Int = size.y - 1): Sequence<T> = bottomUpDiagonalPositions(x, y).map { get(it) }
 
 private suspend fun SequenceScope<Point>.processByIterators(
     matrix: Matrix<*>,

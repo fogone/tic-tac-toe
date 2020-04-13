@@ -6,6 +6,9 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import ru.nobirds.utils.Matrix
+import ru.nobirds.utils.map
+import ru.nobirds.utils.mutableMatrixOf
 
 data class TicTacToeWinnerCase(val matrix: Matrix<CellType>, val inRow: Int, val result: CellType)
 

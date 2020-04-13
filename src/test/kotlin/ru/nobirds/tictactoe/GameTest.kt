@@ -3,6 +3,7 @@ package ru.nobirds.tictactoe
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
+import ru.nobirds.utils.mutableMatrixOf
 
 class GameTest {
 

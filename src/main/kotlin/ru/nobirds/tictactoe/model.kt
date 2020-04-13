@@ -1,5 +1,7 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.Point
+
 enum class CellType(val symbol: String) {
     CROSS("X"),
     ZERO("O"),

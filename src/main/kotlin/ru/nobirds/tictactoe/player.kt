@@ -1,5 +1,9 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.utils.Point
+import ru.nobirds.utils.formatToString
+import ru.nobirds.utils.get
+import ru.nobirds.utils.positions
 import kotlin.random.Random
 
 interface Player {
@@ -15,8 +19,14 @@ class StdInputPlayer(override val cellType: CellType) : Player {
     override fun GameField.nextTurn(inRow: Int): Point {
         println("Current game field state: ${formatToString()}")
         println("Enter coordinates for your next turn:")
-        val parts = readLine()?.split(" ")?.takeIf { it.size == 2 } ?: return Point(-1, -1)
-        val (x, y) = parts.map { it.toIntOrNull() }.filterNotNull().takeIf { it.size == 2 } ?: return Point(-1, -1)
+        val parts = readLine()?.split(" ")?.takeIf { it.size == 2 } ?: return Point(
+            -1,
+            -1
+        )
+        val (x, y) = parts.map { it.toIntOrNull() }.filterNotNull().takeIf { it.size == 2 } ?: return Point(
+            -1,
+            -1
+        )
         return Point(x, y)
     }
 
