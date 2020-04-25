@@ -20,8 +20,33 @@ fun Matrix<*>.checkInBounds(x: Int, y: Int) {
     check(contains(x, y)) { "Coordinates [$x,$y] not in bounds $size" }
 }
 
+inline fun <T> Matrix<T>.forEach(block: (T) -> Unit) {
+    forEachIndexed { _, _, it -> block(it) }
+}
+
+inline fun <T> Matrix<T>.forEachIndexed(block: (Int, Int, T) -> Unit) {
+    xIndices.forEach { x ->
+        yIndices.forEach { y ->
+            block(x, y, get(x, y))
+        }
+    }
+}
+
 inline fun <T, reified R> Matrix<T>.map(transfer: (T) -> R): Matrix<R> =
-    mutableMatrixOf(size.x, size.y) { x, y -> transfer(get(x, y)) }
+    mapIndexed { _, _, it -> transfer(it) }
+
+inline fun <T, reified R> Matrix<T>.mapIndexed(transfer: (Int, Int, T) -> R): Matrix<R> =
+        mutableMatrixOf(size.x, size.y) { x, y -> transfer(x, y, get(x, y)) }
+
+inline fun <T> Matrix<T>.count(condition: (T) -> Boolean): Long = sumBy { if(condition(it)) 1 else 0 }
+
+inline fun <T> Matrix<T>.sumBy(accessor: (T) -> Int): Long {
+    var result = 0L
+    forEach {
+        result += accessor(it)
+    }
+    return result
+}
 
 fun Matrix<*>.rowPositions(y: Int): Sequence<Point> = sequence {
     for (xIndex in xIndices) {
@@ -76,5 +101,11 @@ fun <T> Matrix<T>.positions(): Sequence<Point> = sequence {
         for (yIndex in yIndices) {
             yield(Point(xIndex, yIndex))
         }
+    }
+}
+
+fun <T> MutableMatrix<T>.setEach(provider: (Int, Int) -> T) {
+    forEachIndexed { x, y, _ ->
+        set(x, y, provider(x, y))
     }
 }

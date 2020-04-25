@@ -1,5 +1,7 @@
 package ru.nobirds.tictactoe
 
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
@@ -29,8 +31,10 @@ class GameTest {
             SimpleWinnerAlgorithm()
         )
 
-        val winner = game.run()
+        val winner = runBlocking {
+            game.run().toList().last()
+        }
 
-        assertThat(winner, equalTo(CellType.EMPTY))
+        assertThat(winner.winner, equalTo(false))
     }
 }

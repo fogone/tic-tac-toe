@@ -1,13 +1,18 @@
 package ru.nobirds.tictactoe
 
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import ru.nobirds.utils.*
 
+data class Turn(val cellType: CellType, val point: Point, val winner: Boolean)
+
 class TicTacToeGame(
-    private val gameField: MutableGameField,
-    val inRow: Int,
-    private val player1: Player,
-    private val player2: Player,
-    private val winnerAlgorithm: WinnerAlgorithm
+        private val gameField: MutableGameField,
+        val inRow: Int,
+        private val player1: Player,
+        private val player2: Player,
+        private val winnerAlgorithm: WinnerAlgorithm
 ) {
 
     val field: GameField get() = gameField
@@ -16,29 +21,35 @@ class TicTacToeGame(
     private val winner = mutableListOf<SearchResult>()
     private var nextPlayer = player1
 
-    fun run(): CellType {
+    fun reset() {
+        winner.clear()
+        nextPlayer = player1
+        gameOver = false
+        gameField.setEach { _, _ -> CellType.EMPTY }
+    }
+
+    fun run() = flow<Turn> {
         do {
-            with(nextPlayer) {
-                val turn = processTurn()
-                gameField[turn] = cellType
-            }
-
-            checkWinner()
-
-            if(!gameOver) {
-                checkEmptyCells()
-                swapPlayers()
-            }
-
-            println("$gameField")
+            processTurn()
         } while (!gameOver)
 
         if (winner.isNotEmpty()) {
             println("The winner is: ${winner.map { it.cellType }}")
-            return winner.map { it.cellType }.first()
+        }
+    }
+
+    private suspend fun FlowCollector<Turn>.processTurn() {
+        with(nextPlayer) {
+            val turn = processTurn()
+            gameField[turn] = cellType
+            val isWinner = checkWinner()
+            emit(Turn(nextPlayer.cellType, turn, isWinner))
         }
 
-        return CellType.EMPTY
+        checkEmptyCells()
+        swapPlayers()
+
+        println("$gameField")
     }
 
     private fun checkEmptyCells() {
@@ -51,22 +62,33 @@ class TicTacToeGame(
         gameOver = true
     }
 
-    private fun checkWinner() {
+    private fun checkWinner(): Boolean {
         with(winnerAlgorithm) {
             val winner = gameField.findWinner(inRow)
             if (winner.isNotEmpty()) {
                 gameOver()
                 this@TicTacToeGame.winner.addAll(winner)
+                return true
             }
+        }
+        return false
+    }
+
+    private suspend fun Player.processTurn(): Point {
+        return flow {
+            emit(gameField.nextTurn(inRow))
+        }.first { gameField.checkTurn(it) }
+    }
+
+    private fun <T> Sequence<T>.takeWhileIncluding(condition: (T) -> Boolean): Sequence<T> = sequence {
+        for (item in this@takeWhileIncluding) {
+            yield(item)
+            if(!condition(item))
+                break
         }
     }
 
-    private fun Player.processTurn(): Point {
-        return generateSequence { gameField.nextTurn(inRow) }
-            .first { gameField.checkTurn(it) }
-    }
-
-    private fun GameField.checkTurn(point: Point): Boolean {
+    private fun Matrix<CellType>.checkTurn(point: Point): Boolean {
         return point in this && get(point).isEmpty
     }
 

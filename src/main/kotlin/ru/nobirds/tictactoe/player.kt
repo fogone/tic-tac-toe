@@ -1,35 +1,38 @@
 package ru.nobirds.tictactoe
 
-import ru.nobirds.utils.Point
-import ru.nobirds.utils.formatToString
-import ru.nobirds.utils.get
-import ru.nobirds.utils.positions
+import ru.nobirds.utils.*
 import kotlin.random.Random
 
 interface Player {
 
     val cellType: CellType
 
-    fun GameField.nextTurn(inRow: Int): Point
+    suspend fun GameField.nextTurn(inRow: Int): Point
 
 }
 
 class StdInputPlayer(override val cellType: CellType) : Player {
 
-    override fun GameField.nextTurn(inRow: Int): Point {
+    override suspend fun GameField.nextTurn(inRow: Int): Point {
         println("Current game field state: ${formatToString()}")
         println("Enter coordinates for your next turn:")
-        val parts = readLine()?.split(" ")?.takeIf { it.size == 2 } ?: return Point(
-            -1,
-            -1
-        )
-        val (x, y) = parts.map { it.toIntOrNull() }.filterNotNull().takeIf { it.size == 2 } ?: return Point(
-            -1,
-            -1
-        )
+        val parts = readLine()?.split(" ")?.takeIf { it.size == 2 } ?: return Point(-1, -1)
+        val (x, y) = parts.map { it.toIntOrNull() }.filterNotNull().takeIf { it.size == 2 } ?: return Point(-1, -1)
         return Point(x, y)
     }
 
+}
+
+interface EventWaiter {
+    suspend fun waitForPoint(): Point
+}
+
+class SuspendablePlayer(override val cellType: CellType,
+                        private val eventWaiter: EventWaiter) : Player {
+
+    override suspend fun GameField.nextTurn(inRow: Int): Point {
+        return eventWaiter.waitForPoint()
+    }
 }
 
 typealias Alert = GameRange
@@ -130,7 +133,7 @@ class AiPlayer(override val cellType: CellType,
                private val preventAlertStrategy: PreventAlertStrategy,
                private val attackStrategy: AttackStrategy) : Player {
 
-    override fun GameField.nextTurn(inRow: Int): Point {
+    override suspend fun GameField.nextTurn(inRow: Int): Point {
         val alerts = with(alertSearchStrategy) { findAlerts(inRow, cellType.inverse()) }
         val alert = with(chooseAlertStrategy) { chooseAlert(inRow, cellType.inverse(), alerts) }
         return if (alert != null) {

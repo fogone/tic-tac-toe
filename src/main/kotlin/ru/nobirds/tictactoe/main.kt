@@ -1,11 +1,10 @@
 package ru.nobirds.tictactoe
 
+import ru.nobirds.tictactoe.ui.GameWindow
 import ru.nobirds.utils.mutableMatrixOf
 
 fun main() {
-    val game = createDefaultGame(5, 4)
-    val winner = game.run()
-    println("Winner: ${game.inRow}/${game.field.size.x} in row $winner")
+    GameWindow().isVisible = true
 }
 
 fun createDefaultGame(fieldSize: Int, inRow: Int,
