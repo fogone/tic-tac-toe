@@ -1,63 +1,12 @@
 package ru.nobirds.tictactoe.ui
 
 import ru.nobirds.tictactoe.*
-import ru.nobirds.utils.ObservableMatrixWrapper
-import ru.nobirds.utils.mutableMatrixOf
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Container
 import javax.swing.*
 
 enum class PlayerType {
     HUMAN, AI
-}
-
-class NewGameWindow(private val newGameListener: (Int, Int, PlayerType, PlayerType) -> Unit) : JFrame("New game") {
-
-    init {
-        contentPane.initializeComponents()
-        pack()
-    }
-
-    private fun Container.initializeComponents() {
-        flowLayout(SwingConstants.LEADING)
-        label("Field size")
-        val size = add(
-                JSlider(
-                        SwingConstants.HORIZONTAL,
-                        3,
-                        10,
-                        5
-                ).apply {
-                    paintTicks = true
-                    paintTrack = true
-                    snapToTicks = true
-                }) as JSlider
-        label("In row")
-        val inRow = add(
-                JSlider(
-                        SwingConstants.HORIZONTAL,
-                        3,
-                        10,
-                        4
-                ).apply {
-                    paintTicks = true
-                    paintTrack = true
-                    snapToTicks = true
-                }) as JSlider
-        label("First player")
-        val firstPlayer =
-                add(JComboBox(PlayerType.values())) as JComboBox<PlayerType>
-        label("Second player")
-        val secondPlayer =
-                add(JComboBox(PlayerType.values())) as JComboBox<PlayerType>
-        button("Start") {
-            this@NewGameWindow.isVisible = false
-            newGameListener(size.value, inRow.value,
-                    firstPlayer.selectedItem as PlayerType, secondPlayer.selectedItem as PlayerType)
-        }
-    }
-
 }
 
 class GameWindow() : JFrame("Tic Tac Toe") {
@@ -79,7 +28,11 @@ class GameWindow() : JFrame("Tic Tac Toe") {
         }
     }
 
-    private lateinit var startButton: JButton
+    private val startButton: JButton = JButton("New Game").apply {
+        addActionListener {
+            newGameWindow.isVisible = true
+        }
+    }
 
     init {
         initializeComponents()
@@ -92,25 +45,22 @@ class GameWindow() : JFrame("Tic Tac Toe") {
             borderLayout()
             add(gameFieldPanel)
             panel(BorderLayout.SOUTH) {
-                startButton = button("New Game") {
-                    newGameWindow.isVisible = true
-                }
+                startButton.addTo(this)
             }
         }
     }
 
-    private fun generateGame(
-            size: Int,
-            inRow: Int,
-            firstPlayer: PlayerType,
-            secondPlayer: PlayerType
-    ): TicTacToeGame {
+    private fun generateGame(size: Int, inRow: Int, firstPlayer: PlayerType, secondPlayer: PlayerType): TicTacToeGame {
         return createDefaultGame(size, inRow) {
-            createPlayerByType(it, when (it) {
-                CellType.CROSS -> firstPlayer
-                CellType.ZERO -> secondPlayer
-                else -> error("No empty player")
-            })
+            createPlayerByType(it, it.toPlayerType(firstPlayer, secondPlayer))
+        }
+    }
+
+    private fun CellType.toPlayerType(firstPlayer: PlayerType, secondPlayer: PlayerType): PlayerType {
+        return when (this) {
+            CellType.CROSS -> firstPlayer
+            CellType.ZERO -> secondPlayer
+            else -> error("No empty player")
         }
     }
 
