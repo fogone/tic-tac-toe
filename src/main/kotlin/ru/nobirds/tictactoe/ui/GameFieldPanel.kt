@@ -3,40 +3,47 @@ package ru.nobirds.tictactoe.ui
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
-import ru.nobirds.tictactoe.CellType
-import ru.nobirds.tictactoe.GameField
-import ru.nobirds.tictactoe.Turn
+import ru.nobirds.tictactoe.*
 import ru.nobirds.utils.*
 import javax.swing.JPanel
 
-class GameFieldPanel(private val turns: Channel<Point>) : JPanel() {
+class GameFieldPanel() : JPanel() {
 
-    var gameField: GameField? = null
-        set(value) {
-            field = value
-            if (value != null) {
-                updateComponents(value)
-            } else {
-                cleanComponents()
-            }
-        }
+    val turnWaiter = TurnEventWaiter()
+
+    private var endGameListener: (Turn) -> Unit = {}
 
     private var cells: Matrix<CellLabel>? = null
 
-    private fun cleanComponents() {
-        replaceComponents {}
+    fun newGame(game: TicTacToeGame, endGameListener: (Turn) -> Unit) {
+        this.endGameListener = endGameListener
+        updateComponents(game)
     }
 
-    private fun updateComponents(gameField: GameField) {
+    private fun updateComponents(value: TicTacToeGame) {
+        updateCellComponents(value.field)
+        GlobalScope.launch {
+            val last = value.run().onEach { turn(it) }.toList().last()
+            endGameListener(last)
+        }
+    }
+
+    private fun turn(turn: Turn) {
+        cells?.get(turn.point)?.cellType = turn.cellType
+    }
+
+    private fun updateCellComponents(gameField: GameField) {
         replaceComponents {
             gridLayout(gameField.size.x, gameField.size.y)
-            cells = gameField.mapIndexed { x, y, cellType -> createCellLabel(
-                Point(
-                    x,
-                    y
-                ), cellType) }
+
+            cells = gameField.mapIndexed { x, y, cellType ->
+                createCellLabel(Point(x, y), cellType)
+            }
+
             cells?.forEachIndexed { x, y, cell -> add(cell) }
         }
     }
@@ -45,13 +52,18 @@ class GameFieldPanel(private val turns: Channel<Point>) : JPanel() {
         return CellLabel(position).apply {
             cellType = it
             selectHandler = { point ->
-                GlobalScope.launch(Dispatchers.Swing) { turns.send(point) }
+                GlobalScope.launch(Dispatchers.Swing) {
+                    turnWaiter.channel.send(point)
+                }
             }
         }
     }
 
-    fun turn(turn: Turn) {
-        cells?.get(turn.point)?.cellType = turn.cellType
+    class TurnEventWaiter : EventWaiter {
+        val channel = Channel<Point>()
+        override suspend fun waitForPoint(): Point {
+            return channel.receive()
+        }
     }
 
 }

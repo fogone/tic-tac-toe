@@ -97,3 +97,24 @@ class TicTacToeGame(
     }
 
 }
+
+
+fun createDefaultGame(size: Int, inRow: Int,
+                      playerFactory: (CellType) -> Player = { createDefaultAiPlayer(it) }): TicTacToeGame =
+        TicTacToeGame(
+                mutableMatrixOf(size, size) { _, _ -> CellType.EMPTY },
+                inRow,
+                playerFactory(CellType.CROSS),
+                playerFactory(CellType.ZERO),
+                SimpleWinnerAlgorithm()
+        )
+
+fun createDefaultAiPlayer(cellType: CellType): AiPlayer {
+    return AiPlayer(
+            cellType,
+            NaiveAlertSearchStrategy,
+            FirstChooseAlertStrategy,
+            RandomPreventAlertStrategy,
+            RandomAttackStrategy
+    )
+}
