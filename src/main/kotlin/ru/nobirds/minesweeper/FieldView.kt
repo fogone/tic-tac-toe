@@ -91,7 +91,10 @@ class FieldView(private val minesCountLabel: JLabel,
         buttons.forEach {
             if (it.fieldCell.checked) {
                 it.button.checkedCell()
+            } else {
+                it.button.text = ""
             }
+
             if (it.fieldCell.opened || model.state == GameState.LOOSER) {
                 if (it.fieldCell.mine) {
                     it.button.openedMineCell()

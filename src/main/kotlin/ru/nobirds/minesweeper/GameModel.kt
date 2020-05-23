@@ -106,5 +106,3 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int,
     }
 
 }
-
-
