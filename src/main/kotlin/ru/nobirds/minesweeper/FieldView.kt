@@ -12,8 +12,7 @@ import javax.swing.border.Border
 import javax.swing.border.EmptyBorder
 
 class FieldView(private val minesCountLabel: JLabel,
-                private var model: FieldModel,
-                private val gameStateListener: (GameState) -> Unit) {
+                private var model: GameModel) {
 
     private data class Cell(val button: JButton, val fieldCell: FieldCell)
 
@@ -22,27 +21,16 @@ class FieldView(private val minesCountLabel: JLabel,
 
     private var buttons = model.field.map { Cell(createDefaultButton(), it) }
 
-    private var state = GameState.INIT
-        set(value) {
-            if (value != field) {
-                gameStateListener(value)
-            }
-            field = value
-        }
-
     val panel = JPanel()
 
     init {
-        createFieldPanel(model)
+        initialize(model)
         updateView()
     }
 
-    fun updateModel(model: FieldModel) {
+    fun updateModel(model: GameModel) {
         removeAllCells()
-
-        this.createFieldPanel(model)
-        this.state = GameState.GAME
-
+        initialize(model)
         updateView()
     }
 
@@ -53,20 +41,23 @@ class FieldView(private val minesCountLabel: JLabel,
     private fun createDefaultButton(): JButton {
         return JButton().apply {
             font = Font(Font.DIALOG, Font.BOLD, 15)
+            preferredSize = Dimension(120, 60)
+            size = preferredSize
         }
     }
 
-    private fun createFieldPanel(model: FieldModel) {
+    private fun initialize(model: GameModel) {
         this.model = model
         this.buttons = model.field.map { Cell(createDefaultButton(), it) }
         this.panel.apply {
             background = Color.LIGHT_GRAY
-            preferredSize = Dimension(500, 500)
+            // preferredSize = Dimension(500, 500)
             layout = GridLayout(buttons.size.x, buttons.size.y)
             buttons.forEachIndexed { _, _, it ->
                 add(it.button.initialize(it.fieldCell))
             }
         }
+        this.model.state = GameState.GAME
     }
 
     private fun JButton.initialize(cell: FieldCell): JButton = apply {
@@ -87,26 +78,21 @@ class FieldView(private val minesCountLabel: JLabel,
             model.open(cell.position)
         }
         updateView()
-        checkGameOver()
     }
 
     private fun handleCheckMine(cell: FieldCell) {
-        if(!cell.opened) {
-            cell.checked = !cell.checked
-        }
+        model.check(cell)
         updateView()
     }
 
     private fun updateView() {
-        checkGameOver()
-
-        minesCountLabel.text = getMinesLeft().toString()
+        minesCountLabel.text = model.minesLeft.toString()
 
         buttons.forEach {
             if (it.fieldCell.checked) {
                 it.button.checkedCell()
             }
-            if (it.fieldCell.opened || state == GameState.LOOSER) {
+            if (it.fieldCell.opened || model.state == GameState.LOOSER) {
                 if (it.fieldCell.mine) {
                     it.button.openedMineCell()
                 } else {
@@ -162,19 +148,6 @@ class FieldView(private val minesCountLabel: JLabel,
         font = defaultFont
     }
 
-    private fun getMinesLeft() = model.minesNumber - buttons.count { it.fieldCell.checked }
-
-    private fun checkGameOver() {
-        if (model.checkLooser()) {
-            state = GameState.LOOSER
-            return
-        }
-
-        if (model.checkWinner()) {
-            state = GameState.WINNER
-            return
-        }
-    }
 
 }
 

@@ -8,9 +8,14 @@ data class FieldCell(val position: Point,
                      var opened: Boolean = false,
                      var checked: Boolean = false)
 
+enum class GameState {
+    INIT, GAME, WINNER, LOOSER
+}
+
 val FieldCell.empty: Boolean get() = !mine && minesAroundNumber == 0
 
-class FieldModel(width: Int, height: Int, val minesNumber: Int) {
+class GameModel(width: Int, height: Int, private val minesNumber: Int,
+                private val gameStateListener: (GameState) -> Unit = {}) {
 
     private val mutableField = mutableMatrixOf(width, height) { x, y -> FieldCell(x x y) }.apply {
         setMines()
@@ -19,6 +24,16 @@ class FieldModel(width: Int, height: Int, val minesNumber: Int) {
 
     val field: Matrix<FieldCell>
         get() = mutableField
+
+    var state = GameState.INIT
+        set(value) {
+            if (value != field) {
+                gameStateListener(value)
+            }
+            field = value
+        }
+
+    val minesLeft get() = minesNumber - field.count { it.checked }
 
     private fun MutableMatrix<FieldCell>.setMines() {
         generateSequence { size.random() }
@@ -50,6 +65,8 @@ class FieldModel(width: Int, height: Int, val minesNumber: Int) {
                 open(cell.position)
             }
         }
+
+        checkGameOver()
     }
 
     fun openUnchecked(point: Point) {
@@ -59,14 +76,33 @@ class FieldModel(width: Int, height: Int, val minesNumber: Int) {
                 open(it.position)
             }
         }
+        checkGameOver()
     }
 
-    fun checkWinner(): Boolean {
+    private fun checkWinner(): Boolean {
         return field.count { !it.mine && !it.opened } == 0L
     }
 
-    fun checkLooser(): Boolean {
+    private fun checkLooser(): Boolean {
         return field.count { it.opened && it.mine } > 0
+    }
+
+    private fun checkGameOver() {
+        if (checkLooser()) {
+            state = GameState.LOOSER
+            return
+        }
+
+        if (checkWinner()) {
+            state = GameState.WINNER
+            return
+        }
+    }
+
+    fun check(cell: FieldCell) {
+        if(!cell.opened) {
+            cell.checked = !cell.checked
+        }
     }
 
 }

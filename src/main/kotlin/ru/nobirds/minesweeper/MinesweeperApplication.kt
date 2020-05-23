@@ -8,40 +8,20 @@ import javax.swing.*
 import javax.swing.JFrame.EXIT_ON_CLOSE
 import kotlin.system.exitProcess
 
-class TimerView {
-
-    var seconds = 0
-        private set
-
-    val timerLabel = JLabel("0 сек")
-
-    private val timer = Timer(1000) {
-        seconds++
-        timerLabel.text = "$seconds сек"
-    }
-
-    fun start() {
-        seconds = 0
-        if(!timer.isRunning)
-            timer.start()
-    }
-
-    fun stop() {
-        timer.stop()
-    }
-}
-
 class MinesweeperApplication() {
 
     private val timerView = TimerView()
     private val minesCountLabel = JLabel("0")
-    private val fieldPanel = FieldView(minesCountLabel, FieldModel(8, 8, 10)) {
-        when (it) {
-            GameState.WINNER, GameState.LOOSER -> SwingUtilities.invokeLater { restartDialog(it) }
-        }
-    }
+    private val fieldPanel = FieldView(minesCountLabel, GameModel(8, 8, 10, this::handleStateChange))
+
     private val frame = createGameWindow()
     private val configFrame = createConfigurationWindow()
+
+    private fun handleStateChange(state: GameState) {
+        when (state) {
+            GameState.WINNER, GameState.LOOSER -> SwingUtilities.invokeLater { restartDialog(state) }
+        }
+    }
 
     private fun restartDialog(state: GameState) {
         timerView.stop()
@@ -64,8 +44,8 @@ class MinesweeperApplication() {
         }
     }
 
-    private fun newGame(fieldModel: FieldModel) {
-        fieldPanel.updateModel(fieldModel)
+    private fun newGame(gameModel: GameModel) {
+        fieldPanel.updateModel(gameModel)
         timerView.start()
     }
 
@@ -78,6 +58,7 @@ class MinesweeperApplication() {
     private fun createGameWindow(): JFrame = JFrame("Minesweeper").apply {
         defaultCloseOperation = EXIT_ON_CLOSE
         layout = GridBagLayout()
+
         cell(minesCountLabel) {
             weightx = 0.3
         }
@@ -104,7 +85,6 @@ class MinesweeperApplication() {
 
     private fun createConfigurationWindow(): JFrame = JFrame("New Game").apply {
         val configFrame = this
-        setLocationRelativeTo(null)
         defaultCloseOperation = EXIT_ON_CLOSE
         val layout = GroupLayout(contentPane)
         contentPane.layout = layout
@@ -134,6 +114,11 @@ class MinesweeperApplication() {
             minesNumberSpinner.value = mines
         }
 
+        fun switchToGame() {
+            configFrame.isVisible = false
+            frame.isVisible = true
+        }
+
         val beginnerButton = JButton("Бегинер").apply {
             addActionListener { setValues(9, 9, 10) }
         }
@@ -146,15 +131,14 @@ class MinesweeperApplication() {
 
         val startButton = JButton("Старт").apply {
             addActionListener {
-                configFrame.isVisible = false
-                newGame(FieldModel(widthSlider.value, heightSlider.value, minesNumberSpinner.value as Int))
-                frame.isVisible = true
+                newGame(GameModel(widthSlider.value, heightSlider.value,
+                        minesNumberSpinner.value as Int, this@MinesweeperApplication::handleStateChange))
+                switchToGame()
             }
         }
         val cancelButton = JButton("Отмена").apply {
             addActionListener {
-                configFrame.isVisible = false
-                frame.isVisible = true
+                switchToGame()
             }
         }
 
@@ -202,8 +186,5 @@ class MinesweeperApplication() {
 
         pack()
     }
-}
 
-enum class GameState {
-    INIT, GAME, WINNER, LOOSER
 }
