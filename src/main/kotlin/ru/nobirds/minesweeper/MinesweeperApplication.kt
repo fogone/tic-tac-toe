@@ -47,6 +47,7 @@ class MinesweeperApplication() {
     private fun newGame(gameModel: GameModel) {
         fieldPanel.updateModel(gameModel)
         timerView.start()
+        frame.pack()
     }
 
     fun start() {

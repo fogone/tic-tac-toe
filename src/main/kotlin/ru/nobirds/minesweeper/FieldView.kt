@@ -41,7 +41,7 @@ class FieldView(private val minesCountLabel: JLabel,
     private fun createDefaultButton(): JButton {
         return JButton().apply {
             font = Font(Font.DIALOG, Font.BOLD, 15)
-            preferredSize = Dimension(120, 60)
+            preferredSize = Dimension(30, 30)
             size = preferredSize
         }
     }
