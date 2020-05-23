@@ -109,3 +109,22 @@ fun <T> MutableMatrix<T>.setEach(provider: (Int, Int) -> T) {
         set(x, y, provider(x, y))
     }
 }
+
+fun <T> Matrix<T>.filter(condition: (T) -> Boolean): List<T> {
+    val result = mutableListOf<T>()
+
+    forEach {
+        if(condition(it))
+            result.add(it)
+    }
+
+    return result
+}
+
+fun <T> Matrix<T>.around(point: Point): List<Point> = listOf(
+        -1 x -1, -1 x 0, -1 x 1,
+        0 x -1,          0 x 1,
+        1 x -1,  1 x 0,  1 x 1
+).map { point + it }.filter { it in this }
+
+fun <T> Matrix<T>.aroundValues(point: Point): List<T> = around(point).map { get(it) }
