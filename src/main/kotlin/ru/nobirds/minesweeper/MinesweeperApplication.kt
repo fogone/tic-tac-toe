@@ -110,7 +110,7 @@ class MinesweeperApplication() {
         contentPane.layout = layout
 
         val widthLabel = JLabel("Высота")
-        val widthSlider = JSlider(JSlider.HORIZONTAL, 7, 25, 9).apply {
+        val widthSlider = JSlider(JSlider.HORIZONTAL, 7, 50, 9).apply {
             majorTickSpacing = 5
             minorTickSpacing = 1
             paintLabels = true
@@ -118,7 +118,7 @@ class MinesweeperApplication() {
             paintTrack = true
         }
         val heightLabel = JLabel("Ширина")
-        val heightSlider = JSlider(JSlider.HORIZONTAL, 7, 25, 9).apply {
+        val heightSlider = JSlider(JSlider.HORIZONTAL, 7, 50, 9).apply {
             majorTickSpacing = 5
             minorTickSpacing = 1
             paintLabels = true
@@ -126,7 +126,7 @@ class MinesweeperApplication() {
             paintTrack = true
         }
         val minesNumberLabel = JLabel("Количетво мин")
-        val minesNumberSpinner = JSpinner(SpinnerNumberModel(10, 5, 100, 1))
+        val minesNumberSpinner = JSpinner(SpinnerNumberModel(10, 5, 1000, 1))
 
         fun setValues(width: Int, height: Int, mines: Int) {
             widthSlider.value = width
