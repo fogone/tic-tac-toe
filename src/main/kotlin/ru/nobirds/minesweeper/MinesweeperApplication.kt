@@ -1,34 +1,62 @@
 package ru.nobirds.minesweeper
 
-import ru.nobirds.utils.*
-import ru.nobirds.utils.Point
+import ru.nobirds.swing.cell
+import ru.nobirds.swing.sequentialHorizontal
+import ru.nobirds.swing.sequentialVertical
 import java.awt.*
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import javax.swing.*
-import javax.swing.border.Border
-import javax.swing.border.EmptyBorder
+import javax.swing.JFrame.EXIT_ON_CLOSE
 import kotlin.system.exitProcess
+
+class TimerView {
+
+    var seconds = 0
+        private set
+
+    val timerLabel = JLabel("0 сек")
+
+    private val timer = Timer(1000) {
+        seconds++
+        timerLabel.text = "$seconds сек"
+    }
+
+    fun start() {
+        seconds = 0
+        if(!timer.isRunning)
+            timer.start()
+    }
+
+    fun stop() {
+        timer.stop()
+    }
+}
 
 class MinesweeperApplication() {
 
-    private val frame = JFrame()
-    private val minesCountLabel = JLabel()
+    private val timerView = TimerView()
+    private val minesCountLabel = JLabel("0")
     private val fieldPanel = FieldView(minesCountLabel, FieldModel(8, 8, 10)) {
-        restartDialog(it)
+        when (it) {
+            GameState.WINNER, GameState.LOOSER -> SwingUtilities.invokeLater { restartDialog(it) }
+        }
     }
+    private val frame = createGameWindow()
+    private val configFrame = createConfigurationWindow()
 
-    private fun restartDialog(winner: Boolean) {
-        val result = if (winner) {
-            JOptionPane.showConfirmDialog(frame, "Еще разок?", "Вы победили!",
+    private fun restartDialog(state: GameState) {
+        timerView.stop()
+
+        val result = when (state) {
+            GameState.WINNER -> JOptionPane.showConfirmDialog(frame, "Еще разок?", "Вы победили!",
                     JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE)
-        } else {
-            JOptionPane.showConfirmDialog(frame, "Еще разок?", "Вы проиграли!",
+            GameState.LOOSER -> JOptionPane.showConfirmDialog(frame, "Еще разок?", "Вы проиграли!",
                     JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE)
+            else -> error("Can't be")
         }
 
         if (result == JOptionPane.YES_OPTION) {
-            newGame()
+            frame.isVisible = false
+            configFrame.isVisible = true
         } else {
             frame.isVisible = false
             frame.dispose()
@@ -36,28 +64,31 @@ class MinesweeperApplication() {
         }
     }
 
-    private fun newGame() {
-        fieldPanel.updateModel(FieldModel(8, 8, 10))
+    private fun newGame(fieldModel: FieldModel) {
+        fieldPanel.updateModel(fieldModel)
+        timerView.start()
     }
 
     fun start() {
         SwingUtilities.invokeLater {
-            createGameWindow().isVisible = true
+            configFrame.isVisible = true
         }
     }
 
-    private fun createGameWindow(): JFrame = frame.apply {
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+    private fun createGameWindow(): JFrame = JFrame("Minesweeper").apply {
+        defaultCloseOperation = EXIT_ON_CLOSE
         layout = GridBagLayout()
         cell(minesCountLabel) {
             weightx = 0.3
         }
-        cell(JButton("New Game").apply {
-            addActionListener { newGame() }
+        cell(JButton("Заново").apply {
+            addActionListener {
+                configFrame.isVisible = true
+            }
         }) {
             weightx = 0.3
         }
-        cell(JLabel("00")) {
+        cell(timerView.timerLabel) {
             weightx = 0.3
         }
         cell(fieldPanel.panel) {
@@ -71,150 +102,108 @@ class MinesweeperApplication() {
         pack()
     }
 
-}
+    private fun createConfigurationWindow(): JFrame = JFrame("New Game").apply {
+        val configFrame = this
+        setLocationRelativeTo(null)
+        defaultCloseOperation = EXIT_ON_CLOSE
+        val layout = GroupLayout(contentPane)
+        contentPane.layout = layout
 
-class FieldView(private val minesCountLabel: JLabel,
-                private var model: FieldModel,
-                private val gameOverListener: (Boolean) -> Unit) {
-
-    private data class Cell(val button: JButton, val fieldCell: FieldCell)
-
-    private var buttons = model.field.map { Cell(createDefaultButton(), it) }
-
-    private var gameOver = false
-
-    val panel = JPanel()
-
-    init {
-        createFieldPanel(buttons)
-        updateView()
-    }
-
-    fun updateModel(model: FieldModel) {
-        this.buttons.forEach { panel.remove(it.button) }
-        this.model = model
-        this.buttons = model.field.map { Cell(createDefaultButton(), it) }
-        this.createFieldPanel(buttons)
-        this.gameOver = false
-        updateView()
-    }
-
-    private fun createDefaultButton(): JButton {
-        return JButton().apply {
-            font = Font(Font.DIALOG, Font.BOLD, 15)
+        val widthLabel = JLabel("Высота")
+        val widthSlider = JSlider(JSlider.HORIZONTAL, 7, 25, 9).apply {
+            majorTickSpacing = 5
+            minorTickSpacing = 1
+            paintLabels = true
+            paintTicks = true
+            paintTrack = true
         }
-    }
+        val heightLabel = JLabel("Ширина")
+        val heightSlider = JSlider(JSlider.HORIZONTAL, 7, 25, 9).apply {
+            majorTickSpacing = 5
+            minorTickSpacing = 1
+            paintLabels = true
+            paintTicks = true
+            paintTrack = true
+        }
+        val minesNumberLabel = JLabel("Количетво мин")
+        val minesNumberSpinner = JSpinner(SpinnerNumberModel(10, 5, 100, 1))
 
-    private fun createFieldPanel(model: Matrix<Cell>) {
-        panel.apply {
-            background = Color.LIGHT_GRAY
-            preferredSize = Dimension(500, 500)
-            layout = GridLayout(model.size.x, model.size.y)
+        fun setValues(width: Int, height: Int, mines: Int) {
+            widthSlider.value = width
+            heightSlider.value = height
+            minesNumberSpinner.value = mines
+        }
 
-            model.forEachIndexed { x, y, it ->
-                add(it.button.initialize(x x y, it.fieldCell))
+        val beginnerButton = JButton("Бегинер").apply {
+            addActionListener { setValues(9, 9, 10) }
+        }
+        val intermediateButton = JButton("Интермедиейт").apply {
+            addActionListener { setValues(16, 16, 40) }
+        }
+        val expertButton = JButton("Эксперт").apply {
+            addActionListener { setValues(16, 31, 99) }
+        }
+
+        val startButton = JButton("Старт").apply {
+            addActionListener {
+                configFrame.isVisible = false
+                newGame(FieldModel(widthSlider.value, heightSlider.value, minesNumberSpinner.value as Int))
+                frame.isVisible = true
             }
         }
-    }
-
-    private fun JButton.initialize(point: Point, cell: FieldCell): JButton = apply {
-        addMouseListener(ExtendedMouseListener(object : ExtendedMouseHandler {
-            override fun onRightButton() {
-                handleCheckMine(point, cell)
-            }
-            override fun onLeftButton() {
-                handleOpen(point, cell)
-            }
-        }))
-    }
-
-    private fun handleOpen(point: Point, cell: FieldCell) {
-        if (cell.opened) {
-            model.openUnchecked(point)
-        } else {
-            model.open(point)
-        }
-        updateView()
-        checkGameOver()
-    }
-
-    private fun handleCheckMine(point: Point, cell: FieldCell) {
-        if(!cell.opened) {
-            cell.checked = !cell.checked
-        }
-        updateView()
-    }
-
-    private fun updateView() {
-        minesCountLabel.text = (model.minesNumber - buttons.count { it.fieldCell.checked }).toString()
-
-        buttons.forEach {
-            if (it.fieldCell.checked) {
-                it.button.text = "X"
-            }
-            if (it.fieldCell.opened || gameOver) {
-                if (it.fieldCell.mine) {
-                    it.button.text = "X"
-                    it.button.background = Color.LIGHT_GRAY
-                } else {
-                    it.button.text = if(it.fieldCell.minesAroundNumber > 0) it.fieldCell.minesAroundNumber.toString() else ""
-                    it.button.foreground = Color.BLUE
-                }
-                it.button.border = EmptyBorder(0, 0, 0, 0)
-            } else {
-                it.button.background = UIManager.getDefaults()["Button.background"] as Color
-                it.button.foreground = UIManager.getDefaults()["Button.foreground"] as Color
-                it.button.border = UIManager.getDefaults()["Button.border"] as Border
+        val cancelButton = JButton("Отмена").apply {
+            addActionListener {
+                configFrame.isVisible = false
+                frame.isVisible = true
             }
         }
 
-        panel.invalidate()
-        panel.repaint()
-    }
-
-    private fun checkGameOver() {
-        if (model.checkLooser()) {
-            gameOver = true
-            updateView()
-            SwingUtilities.invokeLater {
-                gameOverListener(false)
+        layout.sequentialVertical {
+            parallel {
+                component(GroupLayout.Alignment.CENTER, beginnerButton)
+                component(GroupLayout.Alignment.CENTER, intermediateButton)
+                component(GroupLayout.Alignment.CENTER, expertButton)
             }
-            return
-        }
-
-        if (model.checkWinner()) {
-            gameOver = true
-            updateView()
-            SwingUtilities.invokeLater {
-                gameOverListener(true)
+            parallel(GroupLayout.Alignment.BASELINE) {
+                component(widthLabel)
+                component(widthSlider)
+                component(startButton)
             }
-            return
+            parallel {
+                component(heightLabel)
+                component(heightSlider)
+                component(cancelButton)
+            }
+            parallel {
+                component(minesNumberLabel)
+                component(minesNumberSpinner)
+            }
         }
-    }
 
-}
-
-class ExtendedMouseListener(private val handler: ExtendedMouseHandler) : MouseAdapter() {
-
-    override fun mouseReleased(e: MouseEvent) {
-        if (SwingUtilities.isLeftMouseButton(e)) {
-            handler.onLeftButton()
+        layout.sequentialHorizontal {
+            parallel {
+                component(GroupLayout.Alignment.CENTER, beginnerButton)
+                component(widthLabel)
+                component(heightLabel)
+                component(minesNumberLabel)
+            }
+            parallel {
+                component(GroupLayout.Alignment.CENTER, intermediateButton)
+                component(heightSlider)
+                component(widthSlider)
+                component(minesNumberSpinner)
+            }
+            parallel {
+                component(GroupLayout.Alignment.CENTER, expertButton)
+                component(startButton)
+                component(cancelButton)
+            }
         }
-        if (SwingUtilities.isRightMouseButton(e)) {
-            handler.onRightButton()
-        }
+
+        pack()
     }
 }
 
-interface ExtendedMouseHandler {
-    fun onRightButton()
-    fun onLeftButton()
-}
-
-fun Container.cell(component: Component, constraints: GridBagConstraints.() -> Unit) {
-    add(component, constraints(constraints))
-}
-
-fun constraints(builder: GridBagConstraints.() -> Unit): GridBagConstraints {
-    return GridBagConstraints().apply(builder)
+enum class GameState {
+    INIT, GAME, WINNER, LOOSER
 }

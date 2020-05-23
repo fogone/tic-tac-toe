@@ -2,18 +2,17 @@ package ru.nobirds.minesweeper
 
 import ru.nobirds.utils.*
 
-data class FieldCell(var mine: Boolean = false,
+data class FieldCell(val position: Point,
+                     var mine: Boolean = false,
                      var minesAroundNumber: Int = 0,
                      var opened: Boolean = false,
                      var checked: Boolean = false)
 
 val FieldCell.empty: Boolean get() = !mine && minesAroundNumber == 0
 
-class FieldModel(val width: Int, val height: Int, val minesNumber: Int) {
+class FieldModel(width: Int, height: Int, val minesNumber: Int) {
 
-    private val mutableField = mutableMatrixOf(width, height) { _, _ ->
-        FieldCell()
-    }.apply {
+    private val mutableField = mutableMatrixOf(width, height) { x, y -> FieldCell(x x y) }.apply {
         setMines()
         updateMineNumbers()
     }
@@ -36,7 +35,7 @@ class FieldModel(val width: Int, val height: Int, val minesNumber: Int) {
     }
 
     private fun Matrix<FieldCell>.findMinesNumberAround(point: Point): Int {
-        return around(point).map { get(it) }.count { it.mine }
+        return aroundValues(point).count { it.mine }
     }
 
     fun open(point: Point) {
@@ -47,8 +46,8 @@ class FieldModel(val width: Int, val height: Int, val minesNumber: Int) {
         fieldCell.opened = true
 
         if(fieldCell.empty) {
-            for (point in field.around(point).filter { !field[it].opened }) {
-                open(point)
+            for (cell in field.aroundValues(point).filter { !it.opened }) {
+                open(cell.position)
             }
         }
     }
@@ -56,8 +55,8 @@ class FieldModel(val width: Int, val height: Int, val minesNumber: Int) {
     fun openUnchecked(point: Point) {
         val cell = field[point]
         if(cell.minesAroundNumber == field.aroundValues(point).count { it.checked }) {
-            field.around(point).filter { field[it].let { !it.checked && !it.opened } }.forEach {
-                open(it)
+            field.aroundValues(point).filter { !it.checked && !it.opened }.forEach {
+                open(it.position)
             }
         }
     }
