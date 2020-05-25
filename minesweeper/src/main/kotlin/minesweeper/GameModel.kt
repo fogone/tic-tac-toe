@@ -15,7 +15,8 @@ enum class GameState {
 val FieldCell.empty: Boolean get() = !mine && minesAroundNumber == 0
 
 class GameModel(width: Int, height: Int, private val minesNumber: Int,
-                private val gameStateListener: (GameState) -> Unit = {}) {
+                private val gameStateListener: (GameState) -> Unit = {},
+                private val gameFieldListener: (Point, FieldCell, FieldCell) -> Unit = { _, _, _ -> }) {
 
     private val mutableField = mutableMatrixOf(width, height) { x, y -> FieldCell(x x y) }.apply {
         setMines()
@@ -33,7 +34,7 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int,
             field = value
         }
 
-    val minesLeft get() = minesNumber - field.count { it.checked }
+    val minesLeft: Int get() = minesNumber - mutableField.count { it.checked }.toInt()
 
     private fun MutableMatrix<FieldCell>.setMines() {
         generateSequence { size.random() }

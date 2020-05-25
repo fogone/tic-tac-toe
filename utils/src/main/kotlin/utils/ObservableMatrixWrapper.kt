@@ -1,35 +1,32 @@
 package ru.nobirds.utils
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.BroadcastChannel
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.swing.Swing
+data class MatrixChange<T>(val point: Point, val oldValue: T, val newValue: T)
 
-class ObservableMatrixWrapper<T>(private val matrix: MutableMatrix<T>) : ObservableMatrix<T> {
+interface ObservableMatrix<T> : MutableMatrix<T> {
 
-    private val changes = BroadcastChannel<MatrixChange<T>>(10)
+    fun addChangeListener(listener: (MatrixChange<T>) -> Unit)
+
+}
+
+class ObservableMatrixWrapper<T>(private val matrix: MutableMatrix<T>) : ObservableMatrix<T>, Matrix<T> by matrix {
+
+    private val listeners = mutableListOf<(MatrixChange<T>) -> Unit>()
+
+    override fun addChangeListener(listener: (MatrixChange<T>) -> Unit) {
+        this.listeners.add(listener)
+    }
 
     override fun set(x: Int, y: Int, value: T) {
-        val oldValue = matrix[x, y]
-        matrix[x, y] = value
-
-        GlobalScope.launch(Dispatchers.Swing) {
-            changes.send(MatrixChange(Point(x, y), oldValue, value))
+        val position = x x y
+        val oldValue = matrix[position]
+        matrix[position] = value
+        if (oldValue !== value) {
+            for (listener in listeners) {
+                listener(MatrixChange(position, oldValue, value))
+            }
         }
     }
 
-    override val size: Point
-        get() = matrix.size
-
-    override fun get(x: Int, y: Int): T {
-        return matrix[x, y]
-    }
-
-    override fun subscribe(): ReceiveChannel<MatrixChange<T>> {
-        return changes.openSubscription()
-    }
 }
+
+fun <T> MutableMatrix<T>.asObservable(): ObservableMatrix<T> = ObservableMatrixWrapper(this)
