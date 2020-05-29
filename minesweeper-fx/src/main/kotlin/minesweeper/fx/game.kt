@@ -1,18 +1,16 @@
 package ru.nobirds.minesweeper.fx
 
 import javafx.beans.property.IntegerProperty
-import javafx.beans.property.Property
 import javafx.beans.property.ReadOnlyProperty
-import javafx.beans.value.ObservableValue
 import javafx.event.EventTarget
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Parent
-import javafx.scene.layout.AnchorPane
-import javafx.scene.layout.GridPane
-import javafx.scene.layout.Priority
-import javafx.scene.layout.VBox
-import ru.nobirds.minesweeper.GameModel
-import ru.nobirds.minesweeper.GameState
+import javafx.scene.control.Button
+import javafx.scene.input.MouseButton
+import javafx.scene.input.MouseEvent
+import javafx.scene.layout.*
+import javafx.scene.paint.Color
 import ru.nobirds.utils.Matrix
 import ru.nobirds.utils.xIndices
 import ru.nobirds.utils.yIndices
@@ -50,10 +48,37 @@ class GameView() : View() {
         for (row in model.gameModel.field.rows) {
             row {
                 for (cell in row) {
-                    button(" ") {
-                        setPrefSize(30.0, 30.0)
+                    button {
+                        initialize(cell)
                     }
                 }
+            }
+        }
+    }
+
+    private fun Button.initialize(cell: FieldCell) {
+        textProperty().bind(stringBinding(cell.openedProperty, cell.checkedProperty) {
+            when {
+                cell.opened -> if (cell.minesAroundNumber > 0) cell.minesAroundNumber.toString() else ""
+                cell.checked -> "*"
+                else -> " "
+            }
+        })
+
+        backgroundProperty().bind(cell.openedProperty.map {
+            if (it) Background(BackgroundFill(Color.LIGHTGREY, CornerRadii.EMPTY, Insets.EMPTY))
+            else Background(BackgroundFill(Color.GRAY, CornerRadii.EMPTY, Insets.EMPTY))
+        })
+
+        border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, BorderWidths.EMPTY))
+
+        setPrefSize(30.0, 30.0)
+
+        addEventFilter(MouseEvent.MOUSE_CLICKED) {
+            when (it.button) {
+                MouseButton.PRIMARY -> if (cell.opened)
+                    model.gameModel.openUnchecked(cell.position) else model.gameModel.open(cell.position)
+                MouseButton.SECONDARY -> model.gameModel.check(cell)
             }
         }
     }
@@ -63,18 +88,12 @@ class GameView() : View() {
 class Game() : ViewModel() {
     private val gameConfigurationModel by inject<GameConfigurationModel>()
 
-    val gameStateProperty = objectProperty(GameState.INIT)
+    val gameStateProperty = GameState.INIT.toProperty()
 
     val gameModel: GameModel = GameModel(
         gameConfigurationModel.width,
         gameConfigurationModel.height,
-        gameConfigurationModel.minesNumber,
-        {
-            gameStateProperty.set(it)
-        },
-        { position, old, new ->
-
-        }
+        gameConfigurationModel.minesNumber
     )
 
     private val mutableTimerProperty = intProperty()
@@ -107,14 +126,3 @@ class SecondsCounter(private val property: IntegerProperty) {
     }
 
 }
-
-val <T> Matrix<T>.rows: Sequence<Sequence<T>>
-    get() = sequence {
-        xIndices.forEach { x ->
-            yield(sequence {
-                yIndices.forEach { y ->
-                    yield(get(x, y))
-                }
-            })
-        }
-    }

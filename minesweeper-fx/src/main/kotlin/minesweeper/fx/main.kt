@@ -9,7 +9,13 @@ fun main(args: Array<String>) {
 class GameApplication() : App(GameConfigurationView::class, CommonStylesheet::class)
 
 class CommonStylesheet() : Stylesheet() {
+    val checked = cssclass("checked")
+    val closed = cssclass("closed")
+    val opened = cssclass("opened")
 
+    init {
+
+    }
 }
 
 

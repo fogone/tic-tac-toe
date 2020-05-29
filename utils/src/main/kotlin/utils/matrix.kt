@@ -35,11 +35,13 @@ inline fun <T> Matrix<T>.forEachIndexed(block: (Int, Int, T) -> Unit) {
 inline fun <T, reified R> Matrix<T>.map(transfer: (T) -> R): Matrix<R> =
     mapIndexed { _, _, it -> transfer(it) }
 
-inline fun <T, R> Matrix<T>.mapValues(crossinline transfer: (T) -> R): Sequence<R> = sequence {
+val <T> Matrix<T>.values: Sequence<T> get() = sequence {
     forEach {
-        yield(transfer(it))
+        yield(it)
     }
 }
+
+fun <T, R> Matrix<T>.mapValues(transfer: (T) -> R): Sequence<R> = values.map(transfer)
 
 inline fun <T, reified R> Matrix<T>.mapIndexed(transfer: (Int, Int, T) -> R): Matrix<R> =
         mutableMatrixOf(size.x, size.y) { x, y -> transfer(x, y, get(x, y)) }
