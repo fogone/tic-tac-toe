@@ -34,15 +34,20 @@ class FieldCell(position: Point,
     override fun removeListener(listener: InvalidationListener) = observableSupport.removeListener(listener)
     override fun addListener(listener: InvalidationListener) = observableSupport.addListener(listener)
 
+    override fun toString(): String = buildString {
+        if(opened) append("[") else append("{")
+        if(mine) append("*") else "$minesAroundNumber"
+        if(opened) append("]") else append("}")
+    }
 }
 
 enum class GameState {
-    INIT, GAME, WINNER, LOOSER
+    PAUSE, GAME, WINNER, LOOSER
 }
 
 val FieldCell.empty: Boolean get() = !mine && minesAroundNumber == 0
 
-class GameModel(width: Int, height: Int, private val minesNumber: Int) {
+class GameModel(width: Int, height: Int, private val minesNumber: Int) : Observable {
 
     private val mutableField =
         mutableMatrixOf(width, height) { x, y -> FieldCell(x x y) }.apply {
@@ -53,13 +58,41 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int) {
     val field: ObservableMatrix<FieldCell>
         get() = mutableField
 
-    val stateProperty = objectProperty(GameState.INIT)
+    val stateProperty = GameState.PAUSE.toProperty()
     var state by stateProperty
+
+    val startedProperty = stateProperty.booleanBinding { it == GameState.GAME }
+
+    val winnerProperty = field
+        .countBinding { !it.mine && !it.opened }
+        .booleanBinding { it?.toLong() ?: 0 == 0L }
+        .apply {
+            onState {
+                state = GameState.WINNER
+            }
+        }
+
+    val looserProperty = field
+        .countBinding { it.opened && it.mine }
+        .booleanBinding { it?.toLong() ?: 0 > 0 }
+        .apply {
+            onState {
+                state = GameState.LOOSER
+            }
+        }
+
+    val gameOverProperty = winnerProperty.or(looserProperty)
+    val gameOver by gameOverProperty
 
     val minesLeftProperty: LongBinding = field.countBinding { it.checked }
         .longBinding { checked -> checked?.toLong()?.let { minesNumber - it } ?: minesNumber.toLong() }
 
     val minesLeft: Long by minesLeftProperty
+
+    private val observableSupport = support(field, stateProperty, minesLeftProperty)
+
+    override fun removeListener(listener: InvalidationListener) = observableSupport.removeListener(listener)
+    override fun addListener(listener: InvalidationListener) = observableSupport.addListener(listener)
 
     private fun MutableMatrix<FieldCell>.setMines() {
         generateSequence { size.random() }
@@ -91,8 +124,6 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int) {
                 open(cell.position)
             }
         }
-
-        checkGameOver()
     }
 
     fun openUnchecked(point: Point) {
@@ -102,7 +133,6 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int) {
                 open(it.position)
             }
         }
-        checkGameOver()
     }
 
     private fun checkWinner(): Boolean {
@@ -111,18 +141,6 @@ class GameModel(width: Int, height: Int, private val minesNumber: Int) {
 
     private fun checkLooser(): Boolean {
         return field.count { it.opened && it.mine } > 0
-    }
-
-    private fun checkGameOver() {
-        if (checkLooser()) {
-            state = GameState.LOOSER
-            return
-        }
-
-        if (checkWinner()) {
-            state = GameState.WINNER
-            return
-        }
     }
 
     fun check(cell: FieldCell) {

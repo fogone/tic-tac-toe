@@ -1,55 +1,109 @@
 package ru.nobirds.minesweeper.fx
 
+import javafx.application.Platform
 import javafx.beans.property.IntegerProperty
+import javafx.beans.property.ObjectProperty
 import javafx.beans.property.ReadOnlyProperty
 import javafx.event.EventTarget
-import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Parent
 import javafx.scene.control.Button
+import javafx.scene.control.ButtonType
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.*
 import javafx.scene.paint.Color
-import ru.nobirds.utils.Matrix
-import ru.nobirds.utils.xIndices
-import ru.nobirds.utils.yIndices
+import javafx.stage.WindowEvent
+import javafx.util.Duration
+import ru.nobirds.utils.rows
 import tornadofx.*
 import java.util.*
 
 class GameView() : View() {
 
     private val model by inject<Game>()
+    private val settings by inject<GameConfigurationModel>()
+
+    private lateinit var fieldContainer: HBox
+
+    init {
+        model.gameModelProperty.onNonNullChange { newValue ->
+            newValue.initializeGameState()
+        }
+
+        primaryStage.sceneProperty().onNonNullChange {
+            it.window.addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST) {
+                switchToPauseMode()
+            }
+        }
+    }
 
     override val root: Parent = vbox(10) {
         hbox(10, Pos.CENTER) {
             hgrow = Priority.ALWAYS
 
-            label(model.minesLeftProperty)
+            label(model.gameModelProperty.flatMap { minesLeftProperty })
 
             button("New Game") {
                 action {
-                    // todo
+                    switchToSettings(false)
                 }
             }
 
             label(model.timerProperty.stringBinding { "$it sec" })
         }
 
-        hbox {
-            createGameField().apply {
-                vgrow = Priority.ALWAYS
-                hgrow = Priority.ALWAYS
+        fieldContainer = hbox {
+        }
+    }
+
+    private fun switchToSettings(gameOver: Boolean) {
+        if (gameOver) {
+            settings.started = false
+        } else {
+            model.gameModel.state = GameState.PAUSE
+        }
+
+        replaceWith<GameConfigurationView>(
+            transition = ViewTransition.Flip(Duration.seconds(1.0)),
+            sizeToScene = true,
+            centerOnScreen = true
+        )
+    }
+
+    private fun GameModel.initializeGameState() {
+        fieldContainer.createGameField(this)
+        winnerProperty.onState {
+            Platform.runLater {
+                information("Game Over!", "You are winner.",
+                    ButtonType.OK, owner = primaryStage, title = "Game Over") {
+                    switchToSettings(true)
+                }
+            }
+        }
+        looserProperty.onState {
+            Platform.runLater {
+                error("Game Over!", "You are looser.",
+                    ButtonType.OK, owner = primaryStage, title = "Game Over") {
+                    switchToSettings(true)
+                }
             }
         }
     }
 
-    private fun EventTarget.createGameField(): GridPane = gridpane {
-        for (row in model.gameModel.field.rows) {
-            row {
-                for (cell in row) {
-                    button {
-                        initialize(cell)
+    private fun EventTarget.createGameField(model: GameModel) {
+        replaceChildren {
+            gridpane {
+                vgrow = Priority.ALWAYS
+                hgrow = Priority.ALWAYS
+
+                for (row in model.field.rows) {
+                    row {
+                        for (cell in row) {
+                            button {
+                                initialize(cell)
+                            }
+                        }
                     }
                 }
             }
@@ -57,72 +111,129 @@ class GameView() : View() {
     }
 
     private fun Button.initialize(cell: FieldCell) {
-        textProperty().bind(stringBinding(cell.openedProperty, cell.checkedProperty) {
+        addClass(CommonStylesheet.cell)
+
+        textProperty().bind(stringBinding(cell, model.gameModel.gameOverProperty) {
             when {
-                cell.opened -> if (cell.minesAroundNumber > 0) cell.minesAroundNumber.toString() else ""
-                cell.checked -> "*"
+                checked || (model.gameModel.gameOver && mine) || (opened && mine) -> "*"
+                opened -> if (minesAroundNumber > 0) minesAroundNumber.toString() else " "
                 else -> " "
             }
         })
 
-        backgroundProperty().bind(cell.openedProperty.map {
-            if (it) Background(BackgroundFill(Color.LIGHTGREY, CornerRadii.EMPTY, Insets.EMPTY))
-            else Background(BackgroundFill(Color.GRAY, CornerRadii.EMPTY, Insets.EMPTY))
-        })
+        cell.checkedProperty.onChange { newValue ->
+            if (newValue == true) addClass(CommonStylesheet.cellChecked)
+            else removeClass(CommonStylesheet.cellChecked)
+        }
 
-        border = Border(BorderStroke(Color.WHITE, BorderStrokeStyle.DASHED, CornerRadii.EMPTY, BorderWidths.EMPTY))
+        cell.openedProperty.onChange { newValue ->
+            if (newValue == true) {
+                addClass(CommonStylesheet.cellOpened)
+                style {
+                    textFill = getTextColorByMinesAround(cell.minesAroundNumber)
+                }
+            } else {
+                removeClass(CommonStylesheet.cellOpened)
+            }
+        }
 
         setPrefSize(30.0, 30.0)
 
         addEventFilter(MouseEvent.MOUSE_CLICKED) {
             when (it.button) {
-                MouseButton.PRIMARY -> if (cell.opened)
-                    model.gameModel.openUnchecked(cell.position) else model.gameModel.open(cell.position)
+                MouseButton.PRIMARY -> if (cell.opened) {
+                    model.gameModel.openUnchecked(cell.position)
+                } else {
+                    if (!cell.checked)
+                        model.gameModel.open(cell.position)
+                }
                 MouseButton.SECONDARY -> model.gameModel.check(cell)
             }
         }
     }
 
+    private fun getTextColorByMinesAround(minesAroundNumber: Int): Color {
+        return when (minesAroundNumber) {
+            0 -> Color.BLACK
+            1 -> Color.BLUE
+            2 -> Color.GREEN
+            3 -> Color.RED
+            4 -> color(0, 76, 153)
+            5 -> color(102, 0, 0)
+            6 -> color(255, 128, 0)
+            7 -> color(0, 51, 25)
+            8 -> color(132, 33, 86)
+            else -> kotlin.error("Unsupported")
+        }
+    }
+
+    override fun onUndock() {
+        switchToPauseMode()
+    }
+
+    private fun switchToPauseMode() {
+        if (model.gameModel.state == GameState.GAME)
+            model.gameModel.state = GameState.PAUSE
+    }
+
 }
 
 class Game() : ViewModel() {
-    private val gameConfigurationModel by inject<GameConfigurationModel>()
 
-    val gameStateProperty = GameState.INIT.toProperty()
+    val gameModelProperty: ObjectProperty<GameModel> = objectProperty<GameModel>().apply {
+        onChange {
+            if (it != null) {
+                secondsCounter.property.value = 0
+            }
+        }
+    }
 
-    val gameModel: GameModel = GameModel(
-        gameConfigurationModel.width,
-        gameConfigurationModel.height,
-        gameConfigurationModel.minesNumber
-    )
+    var gameModel: GameModel by gameModelProperty
 
-    private val mutableTimerProperty = intProperty()
+    private val mutableTimerProperty = 0.toProperty()
 
-    private val secondsCounter = SecondsCounter(mutableTimerProperty)
+    val secondsCounter = SecondsCounter().apply {
+        mutableTimerProperty.bind(property)
+        startedProperty.bind(gameModelProperty.flatMap { startedProperty })
+    }
+
     val timerProperty: ReadOnlyProperty<Number> get() = mutableTimerProperty
-
-    val gameOverProperty = gameStateProperty.booleanBinding {
-        it == GameState.LOOSER || it == GameState.WINNER
-    }
-
-    val minesLeftProperty = observable(gameModel, GameModel::minesLeft)
-
-    fun dispose() {
-        secondsCounter.stop()
-    }
 
 }
 
-class SecondsCounter(private val property: IntegerProperty) {
+class SecondsCounter() {
 
-    private val timerTask = FXTimerTask({
-        property.value += 1
-    }, Timer()).apply {
-        timer.schedule(this, 0L, 1000L)
+    val property: IntegerProperty = 0.toProperty()
+
+    val startedProperty = false.toProperty {
+        onChange {
+            if (it) {
+                start()
+            } else {
+                stop()
+            }
+        }
     }
 
-    fun stop() {
-        timerTask.timer.cancel()
+    var started by startedProperty
+
+    private var timerTask: FXTimerTask? = null
+
+    private fun createTask(): FXTimerTask {
+        return FXTimerTask({
+            property.value += 1
+        }, Timer()).apply {
+            timer.schedule(this, 0L, 1000L)
+        }
+    }
+
+    private fun stop() {
+        timerTask?.timer?.cancel()
+        timerTask = null
+    }
+
+    private fun start() {
+        timerTask = createTask()
     }
 
 }

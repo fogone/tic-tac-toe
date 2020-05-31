@@ -136,3 +136,14 @@ fun <T> Matrix<T>.around(point: Point): List<Point> = listOf(
 ).map { point + it }.filter { it in this }
 
 fun <T> Matrix<T>.aroundValues(point: Point): List<T> = around(point).map { get(it) }
+
+val <T> Matrix<T>.rows: Sequence<Sequence<T>>
+    get() = sequence {
+        xIndices.forEach { x ->
+            yield(sequence {
+                yIndices.forEach { y ->
+                    yield(get(x, y))
+                }
+            })
+        }
+    }
