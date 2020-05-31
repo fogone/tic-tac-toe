@@ -5,17 +5,13 @@ import javafx.scene.paint.Color
 import javafx.scene.text.FontWeight
 import tornadofx.*
 
-fun main(args: Array<String>) {
-    launch<GameApplication>(args)
-}
+class Styles : Stylesheet() {
 
-class GameApplication() : App(GameConfigurationView::class, CommonStylesheet::class)
-
-class CommonStylesheet() : Stylesheet() {
     companion object {
         val cell by cssclass("cell")
         val cellChecked by cssclass("cell-checked")
         val cellOpened by cssclass("cell-opened")
+        val labledText by cssclass("labled-text")
 
         val openedColor = c("#eeeeee")
         val closedColor = c("#dddddd")
@@ -26,10 +22,13 @@ class CommonStylesheet() : Stylesheet() {
         cell {
             fontFamily = "Monospace"
             borderColor += box(Color.WHITE)
-            borderWidth += box(1.px)
+            borderWidth += tornadofx.box(1.px)
             fontSize = 15.px
             backgroundColor += closedColor
-            effect = DropShadow(1.0, Color.BLACK)
+            effect = DropShadow(
+                1.0,
+                Color.BLACK
+            )
             fontWeight = FontWeight.BOLD
         }
         cellChecked {
@@ -37,6 +36,13 @@ class CommonStylesheet() : Stylesheet() {
         }
         cellOpened {
             backgroundColor += openedColor
+        }
+        labledText {
+            borderWidth += box(1.px)
+            borderRadius += box(3.px)
+            borderColor += box(Color.BLACK)
+            padding = box(4.px)
+            fontSize = 17.px
         }
     }
 }

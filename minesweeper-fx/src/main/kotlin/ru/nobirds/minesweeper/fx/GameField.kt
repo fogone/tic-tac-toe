@@ -47,7 +47,7 @@ enum class GameState {
 
 val FieldCell.empty: Boolean get() = !mine && minesAroundNumber == 0
 
-class GameModel(width: Int, height: Int, private val minesNumber: Int) : Observable {
+class GameField(width: Int, height: Int, private val minesNumber: Int) : Observable {
 
     private val mutableField =
         mutableMatrixOf(width, height) { x, y -> FieldCell(x x y) }.apply {

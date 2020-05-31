@@ -5,53 +5,7 @@ import javafx.scene.Parent
 import javafx.scene.control.SpinnerValueFactory
 import javafx.scene.layout.Priority
 import javafx.scene.paint.Color
-import javafx.util.Duration
 import tornadofx.*
-
-class GameConfigurationModel() : ViewModel() {
-
-    private val gameView = find<GameView>()
-    private val game by inject<Game>()
-
-    val widthProperty = 9.toProperty()
-    val heightProperty = 9.toProperty()
-    val minesNumberProperty = 10.toProperty()
-
-    var width by widthProperty
-    var height by heightProperty
-    var minesNumber by minesNumberProperty
-
-    val startedProperty = false.toProperty()
-
-    var started by startedProperty
-
-    fun setValues(width: Int, height: Int, mines: Int) {
-        this.width = width
-        this.height = height
-        this.minesNumber = mines
-    }
-
-    fun startNewGame(view: View) {
-        game.gameModel = GameModel(width, height, minesNumber)
-        view.showGame()
-        started = true
-    }
-
-    fun backToGame(view: View) {
-        view.showGame()
-    }
-
-    private fun View.showGame() {
-        replaceWith(
-            transition = ViewTransition.Flip(Duration.seconds(1.0)),
-            sizeToScene = true,
-            centerOnScreen = true,
-            replacement = gameView
-        )
-        game.gameModel.state = GameState.GAME
-    }
-
-}
 
 class GameConfigurationView() : View() {
 
@@ -64,7 +18,8 @@ class GameConfigurationView() : View() {
                     model.setValues(9, 9, 10)
                 }
                 style {
-                    backgroundColor = multi(Color.GREEN)
+                    backgroundColor =
+                        multi(Color.GREEN)
                     textFill = Color.WHITE
                 }
             }
@@ -73,7 +28,8 @@ class GameConfigurationView() : View() {
                     model.setValues(16, 16, 40)
                 }
                 style {
-                    backgroundColor = multi(Color.BLUE)
+                    backgroundColor =
+                        multi(Color.BLUE)
                     textFill = Color.WHITE
                 }
             }
@@ -82,9 +38,14 @@ class GameConfigurationView() : View() {
                     model.setValues(16, 31, 99)
                 }
                 style {
-                    backgroundColor = multi(Color.RED)
+                    backgroundColor =
+                        multi(Color.RED)
                     textFill = Color.WHITE
                 }
+            }
+
+            style {
+                padding = box(horizontal = 5.px, vertical = 10.px)
             }
         }
 
