@@ -1,14 +1,16 @@
 package ru.nobirds.minesweeper.fx
 
 import javafx.scene.effect.DropShadow
+import javafx.scene.layout.BorderStrokeStyle
 import javafx.scene.paint.Color
 import javafx.scene.text.FontWeight
 import tornadofx.*
+import java.net.URI
 
 class Styles : Stylesheet() {
 
     companion object {
-        val cell by cssclass("cell")
+        val cell by cssclass("game-cell")
         val cellChecked by cssclass("cell-checked")
         val cellOpened by cssclass("cell-opened")
         val labledText by cssclass("labled-text")
@@ -36,6 +38,9 @@ class Styles : Stylesheet() {
         }
         cellOpened {
             backgroundColor += openedColor
+            borderStyle += BorderStrokeStyle.NONE
+            borderWidth += box(0.px)
+            borderRadius += box(0.px)
         }
         labledText {
             borderWidth += box(1.px)

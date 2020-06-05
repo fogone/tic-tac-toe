@@ -81,6 +81,11 @@ class GameConfigurationView() : View() {
         }
 
         buttonbar {
+            button("Score") {
+                action {
+                    model.showScore(this@GameConfigurationView)
+                }
+            }
             button("Back to game") {
                 disableProperty().bind(model.startedProperty.not())
                 action {

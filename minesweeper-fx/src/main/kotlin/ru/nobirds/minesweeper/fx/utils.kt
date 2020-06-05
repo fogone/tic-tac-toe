@@ -3,14 +3,11 @@ package ru.nobirds.minesweeper.fx
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.beans.binding.Binding
-import javafx.beans.binding.ObjectBinding
 import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
+import javafx.collections.ObservableList
 import javafx.scene.paint.Color
-import tornadofx.objectBinding
-import tornadofx.objectProperty
-import tornadofx.onChange
-import tornadofx.onChangeOnce
+import tornadofx.*
 
 interface Cancelable {
     fun cancel()
@@ -120,3 +117,29 @@ fun String.toProperty(builder: StringProperty.() -> Unit): StringProperty = Simp
 fun <T> T.toProperty(builder: ObjectProperty<T>.() -> Unit): ObjectProperty<T> = SimpleObjectProperty(this).apply(builder)
 
 fun color(r: Int, g: Int, b: Int): Color = Color.rgb(r, g, b)
+
+fun Long.toTime(): String {
+    val minutes = this / 60
+    val seconds = this % 60
+    val prefix = if(seconds < 10) "0" else ""
+    return "$minutes:$prefix$seconds"
+}
+
+private fun <T, R> ObservableList<T>.createBoundList(vararg dependencies: Observable, conversion: (T) -> R): ObservableList<R> {
+    val result = observableListOf<R> { dependencies as Array<Observable> }
+    result.bind(this, conversion)
+    return result
+}
+
+fun <T> ObservableList<T>.filtered(vararg dependencies: Observable, condition: (T) -> Boolean): ObservableList<T> {
+    return createBoundList(*dependencies) { it }.filtered(condition)
+}
+
+fun <T, R> ObservableList<T>.mapped(vararg dependencies: Observable, transform: (T) -> R): ObservableList<R> {
+    return createBoundList(*dependencies, conversion = transform)
+}
+
+fun <T> ObservableList<T>.sorted(vararg dependencies: Observable, comparator: Comparator<T>): ObservableList<T> {
+    return createBoundList(*dependencies) { it }.sorted(comparator)
+}
+

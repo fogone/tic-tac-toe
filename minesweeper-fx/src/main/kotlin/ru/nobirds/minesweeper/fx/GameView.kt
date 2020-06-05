@@ -1,18 +1,22 @@
 package ru.nobirds.minesweeper.fx
 
+import javafx.animation.Interpolator
 import javafx.application.Platform
 import javafx.event.EventTarget
 import javafx.geometry.Pos
 import javafx.scene.Parent
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
+import javafx.scene.control.TextInputDialog
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
 import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.paint.Color
+import javafx.scene.transform.Rotate
 import javafx.stage.WindowEvent
-import javafx.util.Duration
 import ru.nobirds.utils.rows
 import tornadofx.*
 
@@ -20,6 +24,7 @@ class GameView() : View() {
 
     private val model by inject<GameModel>()
     private val settings by inject<GameConfigurationModel>()
+    private val score by inject<GameScoreModel>()
 
     private lateinit var fieldContainer: HBox
 
@@ -49,7 +54,7 @@ class GameView() : View() {
                 }
             }
 
-            label(model.timerProperty.stringBinding { "$it sec" }) {
+            label(model.timerProperty.stringBinding { (it?.toLong() ?: 0).toTime() }) {
                 hgrow = Priority.ALWAYS
                 alignment = Pos.CENTER
                 addClass(Styles.labledText)
@@ -65,38 +70,43 @@ class GameView() : View() {
     }
 
     private fun switchToSettings(gameOver: Boolean) {
+        stop(gameOver)
+
+        replaceWith<GameConfigurationView>(
+            transition = ViewTransition.Fade(0.4.seconds),
+            centerOnScreen = true
+        )
+    }
+
+    private fun stop(gameOver: Boolean) {
         if (gameOver) {
             settings.started = false
         }
 
         switchToPauseMode()
-
-        replaceWith<GameConfigurationView>(
-            transition = ViewTransition.Flip(
-                Duration.seconds(
-                    1.0
-                )
-            ),
-            sizeToScene = true,
-            centerOnScreen = true
-        )
     }
 
     private fun GameField.initializeGameState() {
         fieldContainer.createGameField(this)
         winnerProperty.onState {
             Platform.runLater {
-                information(
-                    "Game Over!", "You are winner.",
-                    ButtonType.OK, owner = primaryStage, title = "Game Over"
-                ) {
+                TextInputDialog().apply {
+                    title = "You are winner!"
+                    headerText = "Enter your name:"
+                    initOwner(primaryStage)
+                }.showAndWait().ifPresentOrElse({
+                    stop(true)
+                    score.save(scoreRecord(it, model.timerProperty.value.toInt(),
+                        settings.width * settings.height, settings.minesNumber))
+                    replaceWith<GameScoreView>(sizeToScene = true, transition = ViewTransition.Fade(0.3.seconds))
+                }, {
                     switchToSettings(true)
-                }
+                })
             }
         }
         looserProperty.onState {
             Platform.runLater {
-                tornadofx.error(
+                error(
                     "Game Over!", "You are looser.",
                     ButtonType.OK, owner = primaryStage, title = "Game Over"
                 ) {
@@ -130,9 +140,17 @@ class GameView() : View() {
 
         textProperty().bind(stringBinding(cell, model.gameField!!.gameOverProperty) {
             when {
-                checked || (model.gameField?.gameOver == true && mine) || (opened && mine) -> "*"
-                opened -> if (minesAroundNumber > 0) minesAroundNumber.toString() else " "
-                else -> " "
+                opened && !mine && minesAroundNumber > 0 -> minesAroundNumber.toString()
+                else -> ""
+            }
+        })
+
+        graphicProperty().bind(objectBinding(cell) {
+            when {
+                checked -> createImageView("flag.png", 10.0, 10.0)
+                (model.gameField?.gameOver == true && mine) || (opened && mine) ->
+                    createImageView("mine.jpg", 15.0, 15.0)
+                else -> null
             }
         })
 
@@ -143,9 +161,11 @@ class GameView() : View() {
 
         cell.openedProperty.onChange { newValue ->
             if (newValue == true) {
-                addClass(Styles.cellOpened)
-                style {
-                    textFill = getTextColorByMinesAround(cell.minesAroundNumber)
+                rotateTo {
+                    addClass(Styles.cellOpened)
+                    style {
+                        textFill = getTextColorByMinesAround(cell.minesAroundNumber)
+                    }
                 }
             } else {
                 removeClass(Styles.cellOpened)
@@ -163,6 +183,31 @@ class GameView() : View() {
                         model.gameField?.open(cell.position)
                 }
                 MouseButton.SECONDARY -> model.gameField?.check(cell)
+            }
+        }
+    }
+
+    private fun createImageView(fileName: String, width: Double, height: Double): ImageView {
+        return ImageView(
+            Image(
+                ClassLoader.getSystemResourceAsStream(fileName),
+                width, height, true, true
+            )
+        ).apply {
+            style {
+                spacing = 0.px
+            }
+        }
+    }
+
+    private fun Button.rotateTo(block: Button.() -> Unit) {
+        rotate(0.3.seconds, 90, Interpolator.EASE_IN) {
+            axis = Rotate.Y_AXIS
+        }.then {
+            rotate(0.3.seconds, 90, Interpolator.EASE_OUT, true) {
+                axis = Rotate.Y_AXIS
+            }.then {
+                block()
             }
         }
     }

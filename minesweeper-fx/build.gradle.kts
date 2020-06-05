@@ -15,6 +15,7 @@ application {
 
 dependencies {
     implementation("no.tornado:tornadofx:1.7.20")
+    implementation("org.xerial:sqlite-jdbc:3.31.1")
     implementation(project(":utils"))
 }
 

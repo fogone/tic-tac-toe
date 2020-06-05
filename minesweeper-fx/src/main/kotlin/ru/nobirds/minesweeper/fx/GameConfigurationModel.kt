@@ -36,9 +36,13 @@ class GameConfigurationModel() : ViewModel() {
         view.showGame()
     }
 
+    fun showScore(view: View) {
+        view.replaceWith<GameScoreView>(sizeToScene = true, transition = ViewTransition.Fade(0.4.seconds))
+    }
+
     private fun View.showGame() {
         replaceWith(
-            transition = ViewTransition.Flip(Duration.seconds(1.0)),
+            transition = ViewTransition.Fade(0.4.seconds),
             sizeToScene = true,
             centerOnScreen = true,
             replacement = gameView
